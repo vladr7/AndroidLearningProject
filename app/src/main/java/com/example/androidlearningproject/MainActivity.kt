@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.tasks.Tasks.await
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.*
@@ -55,23 +54,48 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Task: print person got the car when both person/car jobs are finished
-        val personResult = lifecycleScope.async {
-            delay(2000L)
-            personDocument.get().await().toObject(Person::class.java)
-        }
-
-        val carResult = lifecycleScope.async {
-            delay(4000L)
-            carDocument.get().await().toObject(Car::class.java)
+        // Also add those to suspend functions
+//        lifecycleScope.launch {
+//            Log.d(TAG, "Person ${.await()?.name}")
+//            Log.d(TAG, "Car ${carResult.await()?.brand}")
+//            Log.d(TAG, "Person ${personResult.await()?.name} got the car ${carResult.await()?.brand}")
+//        }
+        lifecycleScope.launch {
+            Log.d(TAG, "Person ${getPersonFromFirestore()}")
         }
 
         lifecycleScope.launch {
-            Log.d(TAG, "Person ${personResult.await()?.name}")
-            Log.d(TAG, "Car ${carResult.await()?.brand}")
-            Log.d(TAG, "Person ${personResult.await()?.name} got the car ${carResult.await()?.brand}")
+            Log.d(TAG, "Car ${getCarFromFirestore()}")
         }
+
+//        val personResult = lifecycleScope.async {
+//            delay(2000L)
+//            personDocument.get().await().toObject(Person::class.java) ?: Person()
+//        }
+//
+//        val carResult = lifecycleScope.async {
+//            delay(4000L)
+//            carDocument.get().await().toObject(Car::class.java) ?: Car()
+//        }
+
+        // make it async
+        lifecycleScope.launch {
+            val personResult = getPersonFromFirestore()
+            val carResult = getCarFromFirestore()
+            Log.d(TAG, "Person ${personResult.name} got the car ${carResult.brand}")
+        }
+
     }
 
+    private suspend fun getPersonFromFirestore(): Person {
+        delay(2000L)
+        return personDocument.get().await().toObject(Person::class.java) ?: Person()
+    }
+
+    private suspend fun getCarFromFirestore(): Car {
+        delay(4000L)
+        return carDocument.get().await().toObject(Car::class.java) ?: Car()
+    }
 }
 
 
