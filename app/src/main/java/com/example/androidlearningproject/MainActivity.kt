@@ -2,8 +2,10 @@ package com.example.androidlearningproject
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.tasks.Tasks.await
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.*
@@ -43,18 +45,33 @@ class MainActivity : AppCompatActivity() {
             carDocument.set(car)
         }
 
-        // Task: print person got the car when both person/car jobs are finished
         lifecycleScope.launch {
-            delay(2500L)
-            printGotTheCar(tvData)
+            var time = 1000L
+            while (time <= 6000L) {
+                delay(1000L)
+                Log.d(TAG, "second")
+                time += 1000L
+            }
+        }
+
+        // Task: print person got the car when both person/car jobs are finished
+        val personResult = lifecycleScope.async {
+            delay(2000L)
+            personDocument.get().await().toObject(Person::class.java)
+        }
+
+        val carResult = lifecycleScope.async {
+            delay(4000L)
+            carDocument.get().await().toObject(Car::class.java)
+        }
+
+        lifecycleScope.launch {
+            Log.d(TAG, "Person ${personResult.await()?.name}")
+            Log.d(TAG, "Car ${carResult.await()?.brand}")
+            Log.d(TAG, "Person ${personResult.await()?.name} got the car ${carResult.await()?.brand}")
         }
     }
 
-    private suspend fun printGotTheCar(tvData: TextView) {
-        val personResult = personDocument.get().await().toObject(Person::class.java)
-        val carResult = carDocument.get().await().toObject(Car::class.java)
-        tvData.text = "Person ${personResult?.name} got the car ${carResult?.brand}"
-    }
 }
 
 
