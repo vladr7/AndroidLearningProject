@@ -6,7 +6,6 @@ import android.util.Log
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.tasks.await
@@ -35,40 +34,67 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val tvData: TextView = findViewById<TextView>(R.id.tvData)
-        val peter = Person("Peter", 25)
-        val mercedes = Car("Mercedes", 2020)
 
         lifecycleScope.launch {
             var time = 1000L
-            while (time <= 8000L) {
+            while (time <= 6000L) {
                 delay(1000L)
                 Log.d(TAG, "${time/1000L}s")
                 time += 1000L
             }
         }
 
-        // sequentially (takes 4-5 seconds)
+        //
+        /**
+         * synchronously (sequentially) (takes 4-5 seconds)
+         */
+//        lifecycleScope.launch(Dispatchers.IO) {
+//            val time = measureTimeMillis{
+//                setPerson(Person("Peter", 25))
+//                setCar(Car("Mercedes", 2020))
+//                val person = getPerson()
+//                val car = getCar()
+//                Log.d(TAG, "Sequentially: ${person.name} got the car ${car.brand}")
+//                withContext(Dispatchers.Main) {
+//                    tvData.text = "${person.name} got the car ${car.brand}"
+//                }
+//            }
+//            Log.d(TAG, "Requests took $time ms")
+//        }
+
+        /**
+         * async (takes 1-2s)
+         */
+//        lifecycleScope.launch(Dispatchers.IO) {
+//            val time = measureTimeMillis {
+//                val callGetPerson = async { getPerson() }
+//                val callGetCar = async { getCar() }
+//                Log.d(TAG, "Async: ${callGetPerson.await().name} got the car ${callGetCar.await().brand}")
+//                withContext(Dispatchers.Main) {
+//                    tvData.text = "${callGetPerson.await().name} got the car ${callGetCar.await().brand}"
+//                }
+//            }
+//            Log.d(TAG, "Requests took $time ms")
+//        }
+
+        /**
+         * async + sync (async get then wait for it to finish and then async get) (takes 3s)
+         */
         lifecycleScope.launch(Dispatchers.IO) {
-            val time = measureTimeMillis{
-                setPerson(peter)
-                setCar(mercedes)
-                val person = getPerson()
-                val car = getCar()
-                Log.d(TAG, "${person.name} got the car ${car.brand}")
+            val time = measureTimeMillis {
+                val callSetPerson = async { setPerson(Person("Peter", 25)) }
+                val callSetCar = async { setCar(Car("Mercedes", 2020)) }
+                callSetPerson.await() // suspend coroutine until callSets are done
+                callSetCar.await()
+                val callGetPerson = async { getPerson() }
+                val callGetCar = async { getCar() }
+                Log.d(TAG, "Async+sync: ${callGetPerson.await().name} got the car ${callGetCar.await().brand}")
                 withContext(Dispatchers.Main) {
-                    tvData.text = "${person.name} got the car ${car.brand}"
+                    tvData.text = "${callGetPerson.await().name} got the car ${callGetCar.await().brand}"
                 }
             }
             Log.d(TAG, "Requests took $time ms")
         }
-
-        // async
-        lifecycleScope.launch(Dispatchers.IO) {
-            val time = measureTimeMillis {
-
-            }
-        }
-
     }
 
     suspend fun getPerson(): Person {
