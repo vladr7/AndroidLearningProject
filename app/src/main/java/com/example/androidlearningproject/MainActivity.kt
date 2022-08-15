@@ -4,8 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
@@ -16,12 +15,21 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val handler = CoroutineExceptionHandler { _, throwable ->
-            Log.d(TAG,"Caught exception: $throwable")
+        val handler = CoroutineExceptionHandler{ _, throwable ->
+            Log.d(TAG, "Caught exception: $throwable")
         }
 
-        lifecycleScope.launch(handler) {
-            throw Exception("Error")
+        CoroutineScope(Dispatchers.Main).launch(handler) {
+            supervisorScope {
+                launch {
+                    delay(300L)
+                    throw Exception("Coroutine 1 failed")
+                }
+                launch {
+                    delay(400L)
+                    Log.d(TAG, "Coroutine 2 finished")
+                }
+            }
         }
 
     }
